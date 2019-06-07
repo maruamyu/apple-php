@@ -1,0 +1,35 @@
+{
+    "name": "maruamyu/apple",
+    "type": "library",
+    "description": "Apple service's light weight API client.",
+    "keywords": ["sign_in_with_apple"],
+    "homepage": "https://github.com/maruamyu/apple-php",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "maruamyu.net project",
+            "homepage": "http://maruamyu.net/",
+            "role": "Manager"
+        },
+        {
+            "name": "mirai-iro",
+            "homepage": "http://xn--r9j5bxu.jp/",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=5.6.0",
+        "ext-json": "*",
+        "maruamyu/web-app-lib": "dev-master"
+    },
+    "autoload": {
+        "psr-4": {
+            "Maruamyu\\Apple\\": "src/Maruamyu/Apple/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "v1.0.x-dev"
+        }
+    }
+}
