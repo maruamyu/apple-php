@@ -18,11 +18,13 @@ use Psr\Http\Message\UriInterface;
  *   2) take `code` and `state` from callback QUERY_STRING parameter
  *   3) $secretKeyJwk = JsonWebKey::createFromEcdsaPrivateKey('secret key PEM (EC private key)', 'passphrase', 'SECRETKEYID', 'ES256');
  *      $client = new SignInWithAppleClient('TEAMID', 'app.bundle.id', $secretKeyJwk);
- *      $accessToken = $client->generateAccessToken($code, $redirectUrl, $state);
+ *      $accessToken = $client->generateAccessToken($code, $redirectUrl);
  *   4) save $accessToken to persistence storage
  */
 class SignInWithAppleClient
 {
+    const ISSUER = 'https://appleid.apple.com';
+
     const EXPIRE_IN_MAX = 15777000;  # 6 months in seconds
 
     /** @var string */
@@ -84,18 +86,13 @@ class SignInWithAppleClient
      * @note update holding AccessToken if succeeded
      * @param string $code
      * @param string|UriInterface $redirectUrl
-     * @param string $state
      * @return AccessToken|null
      * @throws \Exception if invalid settings or arguments
      */
-    public function generateAccessToken($code, $redirectUrl, $state = null)
+    public function generateAccessToken($code, $redirectUrl)
     {
         $openIDClient = $this->getOpenIDClient();
-        # overwrite `grant_type` value
-        $overwriteParameters = [
-            'grant_type' => 'authorization_token',
-        ];
-        $accessToken = $openIDClient->finishAuthorizationCodeGrant($code, $redirectUrl, $state, $overwriteParameters);
+        $accessToken = $openIDClient->finishAuthorizationCodeGrant($code, $redirectUrl);
         if ($accessToken) {
             $this->accessToken = $accessToken;
         }
@@ -133,16 +130,17 @@ class SignInWithAppleClient
      */
     private function getOpenIDClient()
     {
-        # `client_secret` is dynamic value
-        $openIDSettings = new OpenIDProviderMetadata();
-        $openIDSettings->clientId = $this->appBundleId;
-        $openIDSettings->clientSecret = $this->buildClientSecretJwt();
-        $openIDSettings->issuer = 'https://appleid.apple.com';
-        $openIDSettings->tokenEndpoint = 'https://appleid.apple.com/auth/token';
-        $openIDSettings->jwksUri = 'https://appleid.apple.com/auth/keys';
-        # lacked OpenID provider metadata REQUIRED values...
+        $metadata = new OpenIDProviderMetadata();
+        $metadata->issuer = static::ISSUER;
+        # $metadata->authorizationEndpoint = 'https://appleid.apple.com/auth/authorize';
+        $metadata->tokenEndpoint = 'https://appleid.apple.com/auth/token';
+        $metadata->jwksUri = 'https://appleid.apple.com/auth/keys';
+        $metadata->supportedTokenEndpointAuthMethods = ['client_secret_post'];
 
-        return new OpenIDClient($openIDSettings, $this->accessToken);
+        # `client_secret` is dynamic value
+        $clientSecret = $this->buildClientSecretJwt();
+
+        return new OpenIDClient($metadata, $this->appBundleId, $clientSecret, $this->accessToken);
     }
 
     /**
@@ -156,7 +154,7 @@ class SignInWithAppleClient
             'iss' => $this->teamId,
             'iat' => $currentTimestamp,
             'exp' => ($currentTimestamp + $this->accessTokenExpireIn),
-            'aud' => 'https://appleid.apple.com',
+            'aud' => static::ISSUER,
             'sub' => $this->appBundleId,
         ];
         return JsonWebToken::build($payload, $this->secretKey);
