@@ -20,7 +20,7 @@
     "require": {
         "php": ">=5.6.0",
         "ext-json": "*",
-        "maruamyu/web-app-lib": "dev-master"
+        "maruamyu/web-app-lib": "2.*"
     },
     "autoload": {
         "psr-4": {
@@ -29,7 +29,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-master": "v1.0.x-dev"
+            "dev-master": "v1.1.x-dev"
         }
     }
 }
